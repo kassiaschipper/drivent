@@ -8,7 +8,10 @@ import { AddressByCEP } from "protocols.js";
 
 async function getAddressFromCEP(cep: string) {
   const result = await request.get(`https://viacep.com.br/ws/${cep}/json/`);
- 
+  
+  if (!result.data) {
+    throw notFoundError();
+  }
   const address: AddressByCEP = {
     logradouro: result.data.logradouro, 
     complemento: result.data.complemento, 
@@ -16,9 +19,7 @@ async function getAddressFromCEP(cep: string) {
     cidade: result.data.localidade, 
     uf: result.data.uf
   }; 
-  if (!result.data) {
-    throw notFoundError();
-  }
+
   return address;
 }
 
@@ -49,11 +50,11 @@ type GetAddressResult = Omit<Address, "createdAt" | "updatedAt" | "enrollmentId"
 async function createOrUpdateEnrollmentWithAddress(params: CreateOrUpdateEnrollmentWithAddress) {
   const enrollment = exclude(params, "address");
   const address = getAddressForUpsert(params.address);
-  
+
   const searchCEP = await request.get(`https://viacep.com.br/ws/${address.cep}/json/`);
   const CEPValidation = searchCEP.data.cep;
 
-  if(!CEPValidation) {
+  if (!CEPValidation) {
     throw requestError(400, "This CEP is not valid");
   }
 
